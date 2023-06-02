@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Options;
 using MimeKit;
 
@@ -150,8 +152,14 @@ namespace BackendAPI.Controllers
                             string? sqlStatement = $"DELETE FROM Friends where ApplicationUserId = '{id}' OR ApplicationFriendId = '{id}'";
                             connection.Execute(sqlStatement, transaction: transaction);
 
-                            sqlStatement = $"DELETE FROM TweetLikes where ApplicationUserId = '{id}'";
-                            connection.Execute(sqlStatement, transaction: transaction);
+                            sqlStatement = $"Select Post , Id from Tweets Where ApplicationUserId= '{id}'";
+                            var result = (connection.Query(sqlStatement));
+                            foreach (var item in result)
+                            {
+                                sqlStatement = $"Delete FROM TweetLikes Where TweetId = '{item.Id}'";
+                                connection.Execute(sqlStatement, transaction: transaction);
+
+                            }
 
                             sqlStatement = $"DELETE FROM Tweets where ApplicationUserId = '{id}'";
                             connection.Execute(sqlStatement, transaction: transaction);
@@ -208,6 +216,10 @@ namespace BackendAPI.Controllers
             }
         }
 
+
+
+
+
         [HttpPatch]
         [Authorize]
         [Route("ChangeUsername")]
@@ -250,7 +262,7 @@ namespace BackendAPI.Controllers
 
 
         [HttpPatch]
-        [Authorize(Roles = "User")]
+        //[Authorize]
         [Route("RequestAdminRole")]
         public async Task<IActionResult> RequestAdmin(string id)
         {
@@ -265,7 +277,7 @@ namespace BackendAPI.Controllers
 
 
         [HttpPatch]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         [Route("RevokeAdminRole")]
         public async Task<IActionResult> RevokeAdmin(string id)
         {
@@ -277,7 +289,7 @@ namespace BackendAPI.Controllers
                 {
                     try
                     {
-                        string? sqlStatement = $"UPDATE AspNetUserRoles Set RoleId = '76077f11-e35f-423e-bb92-763d2b568572' WHERE UserId = '{id}'";
+                        string? sqlStatement = $"UPDATE AspNetUserRoles Set RoleId = '76077f11-e35f-423e-bb92-763d2b568572' WHERE UserId = '{id}' AND RoleId !='4d492b72-8f67-4491-a545-98922abe256c'";
                         connection.Execute(sqlStatement, transaction: transaction);
 
                         sqlStatement = $"UPDATE AspNetUsers SET RoleRequest = 'NoRequest' WHERE Id = '{id}'";

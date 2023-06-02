@@ -38,7 +38,7 @@ namespace BackendAPI.Controllers
         public async Task<IActionResult> GetAdminRequests()
         {
 
-            var sqlQuery = $"SELECT Id , UserName , RoleRequest FROM AspNetUsers WHERE RoleRequest = 'Pending'";
+            var sqlQuery = $"SELECT Id , UserName , RoleRequest FROM AspNetUsers WHERE RoleRequest = 'Pending' OR RoleRequest = 'Accepted'";
             
             using (var connection = new SqliteConnection(_connectionString))
             {
@@ -51,7 +51,7 @@ namespace BackendAPI.Controllers
         [HttpPatch]
         [Authorize(Roles = "SuperUser")]
         [Route("AcceptAdminRole")]
-        public async Task<IActionResult> AcceptFriendRequest(string id)
+        public async Task<IActionResult> AcceptAdminRole(string id)
         {
             using (var connection = new SqliteConnection(_connectionString))
             {

@@ -163,6 +163,57 @@ namespace BackendAPI.Controllers
 
         }
 
+        [HttpGet]
+        [Authorize]
+        [Route("GetAllTweets")]
+        public async Task<IActionResult> GetAllTweets(string id)
+        {
+            if (ModelState.IsValid)
+            {
+
+                var sqlStatement = $@" Select Tweets.Id ,Tweets.ApplicationUserId , Post , currentTime , UserName from Tweets JOIN Friends ON Tweets.ApplicationUserId = Friends.ApplicationUserId JOIN AspNetUsers ON Tweets.ApplicationUserId = AspNetUsers.Id;
+                                       Select Tweets.Id, Tweets.ApplicationUserId , Post , currentTime , UserName from Tweets JOIN Friends ON Tweets.ApplicationUserId = Friends.ApplicationFriendId  JOIN AspNetUsers ON Tweets.ApplicationUserId = AspNetUsers.Id; 
+                                     Select Tweets.Id, Tweets.ApplicationUserId , Post , currentTime ,UserName from Tweets  JOIN AspNetUsers ON Tweets.ApplicationUserId = AspNetUsers.Id where  Tweets.ApplicationUserId = '{id}'  ";
+
+                IEnumerable<GetTweetDto> listOfTweets;
+                IEnumerable<GetTweetDto> listOfTweets2;
+                IEnumerable<GetTweetDto> listOfTweets3;
+                IEnumerable<GetTweetDto> Tweets;
+
+                using (var connection = new SqliteConnection(_connectionString))
+                {
+                    using (var multi = connection.QueryMultiple(sqlStatement))
+                    {
+                        listOfTweets = multi.Read<GetTweetDto>().ToList();
+                        listOfTweets2 = multi.Read<GetTweetDto>().ToList();
+                        listOfTweets3 = multi.Read<GetTweetDto>().ToList();
+                    }
+                    Tweets = listOfTweets.Concat(listOfTweets2).Concat(listOfTweets3).ToList();
+
+                    foreach (var tweet in Tweets)
+                    {
+                        var sqlStatement2 = $" Select StatusLike  from Tweets JOIN TweetLikes ON TweetLikes.TweetId = Tweets.Id Where TweetLikes.ApplicationUserId = '{id}'  And TweetId = {tweet.Id} ";
+                        tweet.StatusLike = (await connection.ExecuteScalarAsync<bool>(sqlStatement2));
+
+                        var sqlStatement3 = $"Select COUNT (*) from Tweets Join TweetLikes on Tweets.Id = TweetLikes.TweetId Where TweetId = {tweet.Id} AND StatusLike = 1";                    
+                        tweet.AmountLikes = (await connection.ExecuteScalarAsync<int>(sqlStatement3));
+
+                    }
+                    Tweets = Tweets.OrderByDescending(x => x.currentTime);
+                
+                    return Ok(Tweets);
+
+                }
+            }
+
+            return BadRequest(new AuthResult()
+            {
+                Error = "Server Error"
+            });
+
+        }
+
+
         [HttpDelete]
         [Authorize]
         [Route("DeleteTweet")]
